@@ -1,0 +1,512 @@
+top12
+# Prune the taxa (phyla) to include only these 10 more abundant ones.
+p.sub <- prune_taxa(top12, p.sub)
+# Make a bar plot.
+plot_bar(p.sub, x="Crop", y="Abundance", fill = "Phylum")
+# Get the names of the 10 more abundant phyla.
+p.sub <- tax_glom(p.sub, taxrank = "Phylum")
+top10 <- names(sort(taxa_sums(p.sub), decreasing  = TRUE)[1:10])
+top10
+# Prune the taxa (phyla) to include only these 10 more abundant ones.
+p.sub <- prune_taxa(top10, p.sub)
+# Make a bar plot.
+plot_bar(p.sub, x="Crop", y="Abundance", fill = "Phylum")
+plt <- plot_bar(p.sub, x="Crop", y="Abundance", fill = "Phylum")
+plt + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+p.sub <- transform_sample_counts(p.sub, function(x) 100*(x/sum(x)))
+sample_sums(p.sub)
+otu <- veganotu(p.sub)
+colnames(otu) <- tax_table(p.sub)[colnames(otu), "Phylum"]
+colnames(otu)
+colnames(otu) <- gsub("candidate division", "", colnames(otu))
+colnames(otu)
+colnames(otu) <- gsub("candidate division", "", colnames(otu))
+colnames(otu)
+colnames(otu) <- gsub("candidate division", "", colnames(otu))
+colnames(otu)
+otu <- otu %>%
+as.data.frame() %>%
+rownames_to_column("Sample") %>%
+as_tibble()
+otu
+crop <- vegansam(p.sub) %>%
+rownames_to_column("Sample") %>%
+as_tibble() %>%
+select(Sample, Crop)
+crop
+df <- full_join(crop, otu, by = "Sample")
+df
+df <- pivot_longer(df, 3:12, names_to = "Phylum")
+df
+df_summary <- df %>%
+group_by(Crop, Phylum) %>%
+summarize(mean_abundance = mean(value),
+sd_abundance = sd(value))
+df_summary$Phylum <- fct_reorder(df_summary$Phylum, df_summary$mean_abundance, mean, .desc = FALSE)
+df_summary
+ggplot(data = df_summary, aes(x = Crop, y = mean_abundance, fill = Phylum)) +
+geom_col() +
+ylab("Relative Abundance") +
+ggtitle("Top 10 Phyla")
+# Get the names of the 10 more abundant phyla.
+p.sub <- tax_glom(p.sub, taxrank = "Class")
+top10 <- names(sort(taxa_sums(p.sub), decreasing  = TRUE)[1:10])
+top10
+# Prune the taxa (phyla) to include only these 10 more abundant ones.
+p.sub <- prune_taxa(top10, p.sub)
+# Make a bar plot.
+plot_bar(p.sub, x="Crop", y="Abundance", fill = "Class")
+# Get the names of the 10 more abundant phyla.
+p.sub <- tax_glom(p.sub, taxrank = "Genus")
+top10 <- names(sort(taxa_sums(p.sub), decreasing  = TRUE)[1:10])
+top10
+# Prune the taxa (phyla) to include only these 10 more abundant ones.
+p.sub <- prune_taxa(top10, p.sub)
+# Make a bar plot.
+plot_bar(p.sub, x="Crop", y="Abundance", fill = "Genus")
+# Get the names of the 10 more abundant phyla.
+p.sub <- tax_glom(p.sub, taxrank = "Genera")
+top10 <- names(sort(taxa_sums(p.sub), decreasing  = TRUE)[1:10])
+top10
+# Prune the taxa (phyla) to include only these 10 more abundant ones.
+p.sub <- prune_taxa(top10, p.sub)
+# Make a bar plot.
+plot_bar(p.sub, x="Crop", y="Abundance", fill = "Genera")
+View(otu)
+sample_variables(expt.filt.rare)
+unique(sample_data(expt.filt.rare)[, "Season"])
+unique(sample_data(expt.filt.rare)[, "Sampling_time"])
+unique(sample_data(expt.filt.rare)[, "Soil"])
+unique(sample_data(expt.filt.rare)[, "Crop"])
+p.sub <- subset_samples(expt.filt.rare, Soil == "Bulk")
+p.sub <- subset_samples(p.sub, Sampling_time == "Harvest")
+p.sub <- prune_taxa(taxa_sums(p.sub) > 0, p.sub)
+p.sub
+View(crop)
+# Get the names of the 10 more abundant phyla.
+p.sub <- tax_glom(p.sub, taxrank = "Family")
+top10 <- names(sort(taxa_sums(p.sub), decreasing  = TRUE)[1:10])
+top10
+# Prune the taxa (phyla) to include only these 10 more abundant ones.
+p.sub <- prune_taxa(top10, p.sub)
+# Make a bar plot.
+plot_bar(p.sub, x="Crop", y="Abundance", fill = "")
+rlang::last_error()
+rlang::last_trace()
+suppressPackageStartupMessages(library(phyloseq))
+suppressPackageStartupMessages(library(QsRutils))
+suppressPackageStartupMessages(library(ade4))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(ggordiplots))
+suppressPackageStartupMessages(library(hablar))
+pretty_int <- function(x) {
+formatC(x, format = "f", big.mark = ",", digits = 0)
+}
+load("D:/Users/johnq/OneDrive/Kize/phyloseq/expt_sub.rda")
+suppressPackageStartupMessages(library(phyloseq))
+suppressPackageStartupMessages(library(QsRutils))
+suppressPackageStartupMessages(library(ade4))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(ggordiplots))
+suppressPackageStartupMessages(library(hablar))
+pretty_int <- function(x) {
+formatC(x, format = "f", big.mark = ",", digits = 0)
+}
+load("dada2_merged_expt_filt_rare.rda")
+sample_variables(expt.sub)
+unique(sample_data(expt.sub)[, "Season"])
+unique(sample_data(expt.sub)[, "Sampling_time"])
+unique(sample_data(expt.sub)[, "Soil"])
+unique(sample_data(expt.sub)[, "Crop"])
+sample_variables(exexpt.filt.rare)
+unique(sample_data(expt.filt.rare)[, "Season"])
+unique(sample_data(expt.filt.rare)[, "Sampling_time"])
+unique(sample_data(expt.filt.rare)[, "Soil"])
+unique(sample_data(expt.filt.rare)[, "Crop"])
+p.sub <- subset_samples(expt.filt.rare, Soil == "Bulk")
+p.sub <- subset_samples(p.sub, Sampling_time == "Harvest")
+p.sub <- prune_taxa(taxa_sums(p.sub) > 0, p.sub)
+p.sub
+# Get the names of the 10 more abundant phyla.
+p.sub <- tax_glom(p.sub, taxrank = "Phylum")
+top10 <- names(sort(taxa_sums(p.sub), decreasing  = TRUE)[1:10])
+top10
+# Prune the taxa (phyla) to include only these 10 more abundant ones.
+p.sub <- prune_taxa(top10, p.sub)
+# Make a bar plot.
+plot_bar(p.sub, x="Crop", y="Abundance", fill = "Phylum")
+plt <- plot_bar(p.sub, x="Crop", y="Abundance", fill = "Phylum")
+plt + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+p.sub <- transform_sample_counts(p.sub, function(x) 100*(x/sum(x)))
+sample_sums(p.sub)
+otu <- veganotu(p.sub)
+colnames(otu) <- tax_table(p.sub)[colnames(otu), "Phylum"]
+colnames(otu)
+colnames(otu) <- gsub("candidate division ", "", colnames(otu))
+colnames(otu)
+otu <- otu %>%
+as.data.frame() %>%
+rownames_to_column("Sample") %>%
+as_tibble()
+otu
+crop <- vegansam(p.sub) %>%
+rownames_to_column("Sample") %>%
+as_tibble() %>%
+select(Sample, Crop)
+crop
+df <- full_join(crop, otu, by = "Sample")
+df
+df <- full_join(crop, otu, by = "Sample")
+df
+df <- pivot_longer(df, 3:12, names_to = "Phylum")
+df
+df_summary <- df %>%
+group_by(Crop, Phylum) %>%
+summarize(mean_abundance = mean(value),
+sd_abundance = sd(value))
+df_summary$Phylum <- fct_reorder(df_summary$Phylum, df_summary$mean_abundance, mean, .desc = FALSE)
+df_summary
+ggplot(data = df_summary, aes(x = Crop, y = mean_abundance, fill = Phylum)) +
+geom_col() +
+ylab("Relative Abundance") +
+ggtitle("Top 10 Phyla")
+df_summary$Phylum <- fct_reorder(df_summary$Phylum, df_summary$mean_abundance, mean, .desc = TRUE)
+ggplot(data = df_summary, aes(x = Phylum, y = mean_abundance, fill = Phylum)) +
+geom_col() +
+geom_errorbar(aes(ymin = mean_abundance - sd_abundance,
+ymax = mean_abundance + sd_abundance), width = 0.5) +
+facet_wrap(~ Crop) +
+theme(axis.text.x=element_blank(),
+axis.ticks.x=element_blank()) +
+ylab("Relative Abundance") +
+ggtitle("Top 10 Phyla")
+p.sub <- subset_samples(expt.filt.rare, Soil == "Bulk")
+p.sub <- subset_samples(p.sub, Sampling_time == "Harvest")
+p.sub <- prune_taxa(taxa_sums(p.sub) > 0, p.sub)
+p.sub
+View(otu)
+sample_variables(expt.filt.rare)
+unique(sample_data(expt.filt.rare)[, "Season"])
+unique(sample_data(expt.filt.rare)[, "Sampling_time"])
+unique(sample_data(expt.filt.rare)[, "Soil"])
+unique(sample_data(expt.filt.rare)[, "Crop"])
+p.sub <- subset_samples(expt.filt.rare, Soil == "Bulk")
+p.sub <- subset_samples(p.sub, Sampling_time == "Harvest")
+p.sub <- prune_taxa(taxa_sums(p.sub) > 0, p.sub)
+p.sub
+head(tax_table())
+head(tax_table)
+head(tax_table())
+head(phyloseq(tax_table()))
+View(plt)
+View(pretty_int)
+?head.table
+head(tax_table(x, n = 6L))
+suppressPackageStartupMessages(library(phyloseq))
+suppressPackageStartupMessages(library(QsRutils))
+suppressPackageStartupMessages(library(ade4))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(ggordiplots))
+suppressPackageStartupMessages(library(hablar))
+pretty_int <- function(x) {
+formatC(x, format = "f", big.mark = ",", digits = 0)
+}
+sample_variables(expt.filt.rare)
+unique(sample_data(expt.filt.rare)[, "Season"])
+unique(sample_data(expt.filt.rare)[, "Sampling_time"])
+unique(sample_data(expt.filt.rare)[, "Soil"])
+unique(sample_data(expt.filt.rare)[, "Crop"])
+p.sub <- subset_samples(expt.filt.rare, Soil == "Bulk")
+p.sub <- subset_samples(p.sub, Sampling_time == "Harvest")
+p.sub <- prune_taxa(taxa_sums(p.sub) > 0, p.sub)
+p.sub
+# Get the names of the 10 more abundant phyla.
+p.sub <- tax_glom(p.sub, taxrank = "class")
+top10 <- names(sort(taxa_sums(p.sub), decreasing  = TRUE)[1:10])
+top10
+# Prune the taxa (phyla) to include only these 10 more abundant ones.
+p.sub <- prune_taxa(top10, p.sub)
+# Make a bar plot.
+plot_bar(p.sub, x="Crop", y="Abundance", fill = "class")
+# Get the names of the 10 more abundant phyla.
+p.sub <- tax_glom(p.sub, taxrank = "Class")
+top10 <- names(sort(taxa_sums(p.sub), decreasing  = TRUE)[1:10])
+top10
+# Prune the taxa (phyla) to include only these 10 more abundant ones.
+p.sub <- prune_taxa(top10, p.sub)
+# Make a bar plot.
+plot_bar(p.sub, x="Crop", y="Abundance", fill = "Class")
+plt <- plot_bar(p.sub, x="Crop", y="Abundance", fill = "Class")
+plt + geom_bar(aes(color=Class, fill=Class), stat="identity", position="stack")
+p.sub <- transform_sample_counts(p.sub, function(x) 100*(x/sum(x)))
+sample_sums(p.sub)
+otu <- veganotu(p.sub)
+colnames(otu) <- tax_table(p.sub)[colnames(otu), "Class"]
+colnames(otu)
+otu <- otu %>%
+as.data.frame() %>%
+rownames_to_column("Sample") %>%
+as_tibble()
+otu
+crop <- vegansam(p.sub) %>%
+rownames_to_column("Sample") %>%
+as_tibble() %>%
+select(Sample, Crop)
+crop
+df <- full_join(crop, otu, by = "Sample")
+df
+df <- pivot_longer(df, 3:12, names_to = "Class")
+df
+df_summary <- df %>%
+group_by(Crop, Class) %>%
+summarize(mean_abundance = mean(value),
+sd_abundance = sd(value))
+df_summary <- df %>%
+group_by(Crop, Class) %>%
+summarize(mean_abundance = mean(value),
+sd_abundance = sd(value))
+df_summary$Class <- fct_reorder(df_summary$Class, df_summary$mean_abundance, mean, .desc = FALSE)
+df_summary
+df <- pivot_longer(df, 3:12, names_to = "Classes")
+df
+df_summary <- df %>%
+group_by(Crop, Classes) %>%
+summarize(mean_abundance = mean(value),
+sd_abundance = sd(value))
+df <- pivot_longer(df, 3:12, names_to = "Class")
+df
+df <- pivot_longer(df, 3:8, names_to = "Class")
+df
+df_summary <- df %>%
+group_by(Crop, Class) %>%
+summarize(mean_abundance = mean(value),
+sd_abundance = sd(value))
+df_summary$Class <- fct_reorder(df_summary$Class, df_summary$mean_abundance, mean, .desc = FALSE)
+df_summary
+ggplot(data = df_summary, aes(x = Crop, y = mean_abundance, fill = Phylum)) +
+geom_col() +
+ylab("Relative Abundance") +
+ggtitle("Top 10 Classes")
+ggplot(data = df_summary, aes(x = Crop, y = mean_abundance, fill = Class)) +
+geom_col() +
+ylab("Relative Abundance") +
+ggtitle("Top 10 Classes")
+df_summary$Class <- fct_reorder(df_summary$Class, df_summary$mean_abundance, mean, .desc = TRUE)
+ggplot(data = df_summary, aes(x = Class, y = mean_abundance, fill = Class)) +
+geom_col() +
+geom_errorbar(aes(ymin = mean_abundance - sd_abundance,
+ymax = mean_abundance + sd_abundance), width = 0.5) +
+facet_wrap(~ Crop) +
+theme(axis.text.x=element_blank(),
+axis.ticks.x=element_blank()) +
+ylab("Relative Abundance") +
+ggtitle("Top 10 Classes")
+suppressPackageStartupMessages(library(phyloseq))
+suppressPackageStartupMessages(library(QsRutils))
+suppressPackageStartupMessages(library(ade4))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(ggordiplots))
+suppressPackageStartupMessages(library(hablar))
+pretty_int <- function(x) {
+formatC(x, format = "f", big.mark = ",", digits = 0)
+}
+load("C:/Users/Kize/Google Drive/Doutorado/Tese/scripts_R/dada2_merged_expt_filt_rare.rda")
+sample_variables(expt.filt.rare)
+unique(sample_data(expt.filt.rare)[, "Season"])
+unique(sample_data(expt.filt.rare)[, "Sampling_time"])
+unique(sample_data(expt.filt.rare)[, "Soil"])
+unique(sample_data(expt.filt.rare)[, "Crop"])
+# Chunk 1: setup
+knitr::opts_chunk$set(echo = TRUE)
+# Chunk 2
+suppressPackageStartupMessages(library(phyloseq))
+suppressPackageStartupMessages(library(QsRutils))
+suppressPackageStartupMessages(library(ade4))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(ggordiplots))
+suppressPackageStartupMessages(library(hablar))
+pretty_int <- function(x) {
+formatC(x, format = "f", big.mark = ",", digits = 0)
+}
+# Chunk 3
+sample_variables(expt.filt.rare)
+unique(sample_data(expt.filt.rare)[, "Season"])
+unique(sample_data(expt.filt.rare)[, "Sampling_time"])
+unique(sample_data(expt.filt.rare)[, "Soil"])
+unique(sample_data(expt.filt.rare)[, "Crop"])
+# Chunk 4
+p.sub <- subset_samples(expt.filt.rare, Soil == "Bulk")
+p.sub <- subset_samples(p.sub, Sampling_time == "Harvest")
+p.sub <- prune_taxa(taxa_sums(p.sub) > 0, p.sub)
+p.sub
+# Chunk 5
+# Get the names of the 10 more abundant phyla.
+p.sub <- tax_glom(p.sub, taxrank = "Class")
+top10 <- names(sort(taxa_sums(p.sub), decreasing  = TRUE)[1:10])
+top10
+# Prune the taxa (phyla) to include only these 10 more abundant ones.
+p.sub <- prune_taxa(top10, p.sub)
+# Make a bar plot.
+plot_bar(p.sub, x="Crop", y="Abundance", fill = "Class")
+# Chunk 6
+plt <- plot_bar(p.sub, x="Crop", y="Abundance", fill = "Class")
+plt + geom_bar(aes(color=Class, fill=Class), stat="identity", position="stack")
+# Chunk 7
+p.sub <- transform_sample_counts(p.sub, function(x) 100*(x/sum(x)))
+sample_sums(p.sub)
+# Chunk 8
+otu <- veganotu(p.sub)
+colnames(otu) <- tax_table(p.sub)[colnames(otu), "Class"]
+colnames(otu)
+# Chunk 9
+colnames(otu) <- gsub("candidate division ", "", colnames(otu))
+colnames(otu)
+# Chunk 10
+otu <- otu %>%
+as.data.frame() %>%
+rownames_to_column("Sample") %>%
+as_tibble()
+otu
+# Chunk 11
+crop <- vegansam(p.sub) %>%
+rownames_to_column("Sample") %>%
+as_tibble() %>%
+select(Sample, Crop)
+crop
+# Chunk 12
+df <- full_join(crop, otu, by = "Sample")
+df
+# Chunk 13
+df <- pivot_longer(df, 3:8, names_to = "Class")
+df
+# Chunk 14
+df_summary <- df %>%
+group_by(Crop, Class) %>%
+summarize(mean_abundance = mean(value),
+sd_abundance = sd(value))
+# Chunk 15
+df_summary$Class <- fct_reorder(df_summary$Class, df_summary$mean_abundance, mean, .desc = FALSE)
+df_summary
+# Chunk 16
+ggplot(data = df_summary, aes(x = Crop, y = mean_abundance, fill = Class)) +
+geom_col() +
+ylab("Relative Abundance") +
+ggtitle("Top 10 Classes")
+df_summary$Class <- fct_reorder(df_summary$Class, df_summary$mean_abundance, mean, .desc = TRUE)
+ggplot(data = df_summary, aes(x = Class, y = mean_abundance, fill = Class)) +
+geom_col() +
+geom_errorbar(aes(ymin = mean_abundance - sd_abundance,
+ymax = mean_abundance + sd_abundance), width = 0.5) +
+facet_wrap(~ Crop) +
+theme(axis.text.x=element_blank(),
+axis.ticks.x=element_blank()) +
+ylab("Relative Abundance") +
+ggtitle("Top 10 Classes")
+load("C:/Users/Kize/Google Drive/Doutorado/Tese/scripts_R/usearch_merged_expt_filt_rare.rda")
+suppressPackageStartupMessages(library(phyloseq))
+suppressPackageStartupMessages(library(QsRutils))
+suppressPackageStartupMessages(library(ade4))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(ggordiplots))
+suppressPackageStartupMessages(library(hablar))
+pretty_int <- function(x) {
+formatC(x, format = "f", big.mark = ",", digits = 0)
+}
+sample_variables(expt.filt.rare)
+unique(sample_data(expt.filt.rare)[, "Season"])
+unique(sample_data(expt.filt.rare)[, "Sampling_time"])
+unique(sample_data(expt.filt.rare)[, "Soil"])
+unique(sample_data(expt.filt.rare)[, "Crop"])
+p.sub <- subset_samples(expt.sub, Soil == "Bulk")
+p.sub <- subset_samples(p.sub, Sampling_time == "Harvest")
+p.sub <- prune_taxa(taxa_sums(p.sub) > 0, p.sub)
+p.sub
+p.sub <- subset_samples(expt.filt.rare, Soil == "Bulk")
+p.sub <- subset_samples(p.sub, Sampling_time == "Harvest")
+p.sub <- prune_taxa(taxa_sums(p.sub) > 0, p.sub)
+p.sub
+head tax_table()
+?`tax_table<-,phyloseq,taxonomyTable-method`
+?tax_table
+head(tax_table(p.sub))
+tail(tax_table(p.sub))
+# Get the names of the 10 more abundant phyla.
+p.sub <- tax_glom(p.sub, taxrank = "Phylum")
+top15 <- names(sort(taxa_sums(p.sub), decreasing  = TRUE)[1:15])
+top15
+# Prune the taxa (phyla) to include only these 10 more abundant ones.
+p.sub <- prune_taxa(top15, p.sub)
+# Make a bar plot.
+plot_bar(p.sub, x="Crop", y="Abundance", fill = "Phylum")
+plt <- plot_bar(p.sub, x="Crop", y="Abundance", fill = "Phylum")
+plt + geom_bar(aes(color=Phylum, fill=Phylum), stat="identity", position="stack")
+p.sub <- transform_sample_counts(p.sub, function(x) 100*(x/sum(x)))
+sample_sums(p.sub)
+otu <- veganotu(p.sub)
+colnames(otu) <- tax_table(p.sub)[colnames(otu), "Phylum"]
+colnames(otu)
+colnames(otu) <- gsub("candidate division ", "", colnames(otu))
+colnames(otu)
+otu <- otu %>%
+as.data.frame() %>%
+rownames_to_column("Sample") %>%
+as_tibble()
+otu
+crop <- vegansam(p.sub) %>%
+rownames_to_column("Sample") %>%
+as_tibble() %>%
+select(Sample, Crop)
+crop
+df <- full_join(crop, otu, by = "Sample")
+df
+df <- pivot_longer(df, 3:12, names_to = "Phylum")
+df
+df_summary <- df %>%
+group_by(Crop, Phylum) %>%
+summarize(mean_abundance = mean(value),
+sd_abundance = sd(value))
+df_summary$Phylum <- fct_reorder(df_summary$Phylum, df_summary$mean_abundance, mean, .desc = FALSE)
+df_summary
+ggplot(data = df_summary, aes(x = Crop, y = mean_abundance, fill = Phylum)) +
+geom_col() +
+ylab("Relative Abundance") +
+ggtitle("Top 15 Phyla")
+?pivot
+??pivot_longer
+otu <- veganotu(p.sub)
+colnames(otu) <- tax_table(p.sub)[colnames(otu), "Phylum"]
+colnames(otu)
+otu
+df
+df <- pivot_longer(df, 3:17, names_to = "Phylum")
+df
+df <- pivot_longer(df, 3:9, names_to = "Phylum")
+df
+df
+df
+df <- pivot_longer(df, 3:15, names_to = "Phylum")
+df
+df
+otu
+knitr::opts_chunk$set(echo = TRUE)
+suppressPackageStartupMessages(library(phyloseq))
+suppressPackageStartupMessages(library(QsRutils))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(vegan))
+suppressPackageStartupMessages(library(hablar))
+pretty_int <- function(x) {
+formatC(x, format = "f", big.mark = ",", digits = 0)
+}
+load("usearch_merged_expt_filt_srs.rda")
+load("C:/Users/Kize/Google Drive/Doutorado/Tese/scripts_R/usearch_merged_expt_filt_rare.rda")
+div <- estimate_richness(expt.filt.srs, split = TRUE, measures = c("Observed", "Chao1",
+"Shannon"))
+div <- div %>%
+rownames_to_column("Sample") %>%
+mutate(Pielou = Shannon/log(Observed)) %>%
+as_tibble()
+sam <- vegansam(expt.filt.srs) %>%
+rownames_to_column("Sample") %>%
+as_tibble()
+df_div <- full_join(div, sam, by = "Sample")
+df_div

@@ -1,0 +1,130 @@
+---
+title: "Blooming Time"
+author: "John Quensen"
+date: "5/18/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+2. What is the differencee and abundance of taxa comparing rhizosphere and bulk soil?
+
+```{r, tidy=TRUE, warning=FALSE, message=FALSE, echo=FALSE}
+suppressPackageStartupMessages(library(phyloseq))
+suppressPackageStartupMessages(library(QsRutils))
+suppressPackageStartupMessages(library(ade4))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(ggordiplots))
+suppressPackageStartupMessages(library(hablar))
+suppressPackageStartupMessages(library(GUniFrac))
+suppressPackageStartupMessages(library(RVAideMemoire))
+pretty_int <- function(x) {
+  formatC(x, format = "f", big.mark = ",", digits = 0)
+}
+load("D:/Users/johnq/OneDrive/Kize/phyloseq/expt_sub.rda")
+```
+
+```{r}
+bloom <- subset_samples(expt.sub, Sampling_time == "Blooming")
+bloom <- prune_taxa(taxa_sums(bloom)>0, bloom)
+sample_variables(bloom)
+
+# Tally the number of samples per treatment group.
+num.trts <- vegansam(bloom) %>% 
+  group_by(Season, Soil, Crop, Block) %>% 
+  summarize(Count = n())
+as.data.frame(num.trts) # Because otherwise all rows will not dispay.
+```
+
+I will ignore blocks for now and make an ordination of the samples based on weighted unifrac distances.  
+
+```{r}
+my.tree <- phy_tree(bloom)
+my.otu <- veganotu(bloom)
+unifracs <- GUniFrac(my.otu, my.tree,  alpha = c(0, 0.5, 1))
+dw <- as.dist(unifracs$unifracs[, , "d_1"])
+add <- !(is.euclid(dw))
+sam <- vegansam(bloom)
+grps <- paste(sam$Soil, sam$Crop, sep = "_")
+ord <- cmdscale(dw, k=nsamples(bloom)-1, eig = TRUE, add = add)
+gg_ordiplot(ord, groups = grps)
+```
+
+The bulk soil samples cluster together. If anything, the corn samples are slightly different from the others.  
+
+The rhizosphere samples show more dispersion.    
+
+Make another ordination for just the rhizosphere samples and see if there are signficant differences among crops.  
+
+```{r}
+blm.rhiz <- subset_samples(bloom, Soil == "Rhizosphere")
+blm.rhiz <- prune_taxa(taxa_sums(blm.rhiz)>0, blm.rhiz)
+dw.sub <- subset_dist(blm.rhiz, dw)
+add <- !(is.euclid(dw.sub))
+grps <- vegansam(blm.rhiz)$Crop
+ord <- cmdscale(dw.sub, k=nsamples(blm.rhiz)-1, eig = TRUE, add = add)
+gg_ordiplot(ord, groups = grps)
+gg_ordiplot(ord, groups = grps, choices = c(1,3))
+```
+
+Tests for differences in dispersion.  
+
+```{r}
+rslt <- betadisper(dw.sub, group = grps, add = add)
+rslt
+permutest(rslt)
+```
+
+So dispersions are not significantly different. Proceed with PERMANOVA.  
+
+```{r}
+rslt <- adonis(dw.sub ~ grps)
+rslt
+```
+
+Look for pairwise differences.  
+
+```{r}
+rslt <- pairwise.perm.manova(dw.sub, fact = grps)
+rslt
+```
+
+All crops are significantly different. Find families signficantly different among the crops.    
+
+```{r}
+blm.rhiz <- tax_glom(blm.rhiz, taxrank = "Family")
+blm.rhiz
+library(RDPutils)
+# It is necessacry to rename the taxa; otherwise R will
+# rename any beginning with a digit when the indval
+# report is made.
+taxa_names(blm.rhiz) <- make_otu_names(1:ntaxa(blm.rhiz))
+com <- veganotu(blm.rhiz)
+grps <- vegansam(blm.rhiz)$Crop
+grps
+library(labdsv)
+iva <- indval(com, grps, numitr = 10000)
+# Examine the adjusted p-values.
+summary(pval.adj2 <- p.adjust(iva$pval, method = "BH"))
+(pval.adj2 <- p.adjust(iva$pval, method = "BH"))
+source("D:/data/R_default/functions/indval_report.R")
+indval.rpt <- indval_report(spe = com, iva = iva, alpha = 0.05, p.adj.method = "BH")
+indval.rpt$Family <- tax_table(blm.rhiz)[rownames(indval.rpt), "Family"]
+indval.rpt
+```
+
+Make a heatmap of these taxa.  
+
+```{r}
+temp <- prune_taxa(rownames(indval.rpt), blm.rhiz)
+plot_heatmap(temp, taxa.label = "Family", sample.label = "Crop", sample.order = "Crop")
+
+sum(taxa_sums(temp))/sum(taxa_sums(blm.rhiz))
+
+plot_tree(temp, label.tips = "Family", color = "Crop", size = "Abundance")
+```
+

@@ -1,0 +1,289 @@
+---
+title: "Diversity"
+author: "John Quensen"
+date: "5/15/2020"
+output:
+  pdf_document: default
+  html_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, tidy=TRUE, warning=FALSE, message=FALSE, echo=FALSE}
+suppressPackageStartupMessages(library(phyloseq))
+suppressPackageStartupMessages(library(QsRutils))
+suppressPackageStartupMessages(library(ade4))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(ggordiplots))
+suppressPackageStartupMessages(library(hablar))
+pretty_int <- function(x) {
+  formatC(x, format = "f", big.mark = ",", digits = 0)
+}
+load("D:/Users/johnq/OneDrive/Kize/phyloseq/expt_sub.rda")
+```
+
+1. Does crop rotation increase diversity in relation to maize and soybean mono-culture?  
+
+To compare $\alpha$-diversity measures, there has to be the same number of counts per sample. We begin with expt.sub which has already been filtered of non-bacterial and non-archaeal ASVs and rarefied (sampled) to `r pretty_int(sample_sums(expt.sub)[1])` counts per sample.  
+
+There are several $\alpha$-diversity indices. Some measure richness, some measure evenness, and some combine the two into one measure.  I think the most pertinent for our purposes are the observed number of ASVs as a measure of richness,  chao1 as an estimate of the total number of species (taking into account sampling is incomplete), Pielou's J as a measure of evenness, and Shannon or H' which is related to both richness and evenness.  
+
+First, we have to subset our data to the treatment combinations we want to compare. We begin by sub-setting to harvest time and bulk soil.  
+
+```{r}
+bulk.har <- subset_samples(expt.sub, Sampling_time == "Harvest")
+bulk.har <- subset_samples(bulk.har, Soil == "Bulk")
+bulk.har <- prune_taxa(taxa_sums(bulk.har)>0, bulk.har)
+sample_sums(bulk.har)
+```
+
+Phyloseq includes wrapper functions for calculating and plotting some $\alpha$-diversities, but not Pielou's J. We can get a quick visual comparison of the other measures among years (seasons) with the plot_richness function.  
+
+```{r}
+plot_richness(bulk.har, x = "Season", measures = c("Observed", "Chao1", "Shannon"))
+```
+Each symbol represents an individual sample. There might be a little more diversity the last year.  
+
+To include Pielou's J, make custom plots, and make statistical comparisons, we need to do some data wrangling.  
+```{r}
+yr <- vegansam(bulk.har) %>% 
+  rownames_to_column("Sample") %>% 
+  select(Sample, Season) %>% 
+  as_tibble()
+yr
+
+temp <-   estimate_richness(bulk.har, measures = c("Observed", "Chao1", "Shannon")) %>% 
+  rownames_to_column("Sample") %>% 
+  select(-se.chao1) %>% 
+  mutate(Pielou = Shannon/log(Observed)) %>% 
+  as_tibble()
+temp
+
+alpha.div <- 
+  full_join(yr, temp, by = "Sample") %>% 
+  select(-Sample) %>% 
+  pivot_longer(c(Observed, Chao1, Shannon, Pielou), names_to = "Index") %>% 
+  dplyr::rename(Diversity = value)
+  
+alpha.div
+```
+
+Make box plots.  
+
+```{r}
+ggplot(data = alpha.div, aes(x=Season, y=Diversity)) +
+  geom_boxplot() +
+  facet_wrap(~Index, scales = "free") 
+```
+
+But this is for all three cropping methods pooled. Make separate plots for each season so that we can compare cropping methods for each season/year.  
+
+"Re-make" alpha.div to include both season and crop.  
+
+```{r}
+yr <- vegansam(bulk.har) %>% 
+  rownames_to_column("Sample") %>% 
+  select(Sample, Season, Crop) %>% 
+  as_tibble()
+yr
+
+alpha.div <- 
+  full_join(yr, temp, by = "Sample") %>% 
+  select(-Sample) %>% 
+  pivot_longer(c(Observed, Chao1, Shannon, Pielou), names_to = "Index") %>% 
+  rename(Diversity = value)
+  
+alpha.div
+```
+
+Plot for 2018-2019.  
+
+```{r}
+alpha.sub <- dplyr::filter(alpha.div, Season == "2018-2019")
+
+ggplot(data = alpha.sub, aes(x=Crop, y=Diversity)) +
+  geom_boxplot() +
+  facet_wrap(~Index, scales = "free") +
+  ggtitle("2018-2019")
+```
+
+Plot for 2017-2018.  
+
+```{r}
+alpha.sub <- dplyr::filter(alpha.div, Season == "2017-2018")
+
+ggplot(data = alpha.sub, aes(x=Crop, y=Diversity)) +
+  geom_boxplot() +
+  facet_wrap(~Index, scales = "free") +
+  ggtitle("2017-2018")
+```
+
+Plot for 2016-2017.  
+
+```{r}
+alpha.sub <- dplyr::filter(alpha.div, Season == "2016-2017")
+
+ggplot(data = alpha.sub, aes(x=Crop, y=Diversity)) +
+  geom_boxplot() +
+  facet_wrap(~Index, scales = "free") +
+  ggtitle("2016-2017")
+```
+
+We can also make a plot for all years pooled.  
+
+```{r}
+ggplot(data = alpha.div, aes(x=Crop, y=Diversity)) +
+  geom_boxplot() +
+  facet_wrap(~Index, scales = "free") +
+  ggtitle("All seasons/years pooled")
+```
+
+Make a statistical test for differences in the observed number of ASVs among crops for the 2018-2019 season. Make a box plot with compact letter displays indicating significant differences among the crops.   
+
+```{r}
+# Select season and index.
+df <- alpha.div %>% 
+  dplyr::filter(Season == "2018-2019") %>% 
+  dplyr::filter(Index == "Observed")
+df
+
+# Summarize the diversity values.
+df_sum <- df %>% 
+  group_by(Crop) %>%
+  summarize(
+    count = n(),
+    mean = mean(Diversity, na.rm = TRUE),
+    sd = sd(Diversity, na.rm = TRUE),
+    median = median(Diversity, na.rm = TRUE),
+    IQR = IQR(Diversity, na.rm = TRUE),
+    max = max(Diversity, na.rm = TRUE)
+  )
+
+df_sum
+
+# Make a non-parametric test for differences among crops.
+kruskal.test(Diversity ~ Crop, data = df)
+
+# The result is not quite significant, but contune anyway to show the procedure. Make pairwise tests among the crops.
+rslt <- pairwise.wilcox.test(df$Diversity, df$Crop, p.adjust.method = "BH")
+rslt
+
+# Show a matrix of the p.values for the pairwise tests.
+rslt$p.value
+
+# Get compact letter displays (CLDs) for significant differences if alpha = 0.1.
+ltrs<- make_letter_assignments(rslt, significance = 0.1)
+cld <- ltrs$Letters
+cld
+
+# Get coordinates for the tops of whiskers n the box plot.
+box.rslt <- with(df, graphics::boxplot(Diversity ~ Crop, plot = FALSE))
+whisker.tops <- box.rslt$stats[5, ]
+whisker.tops
+
+# Make a tibble for plotting the CLDs.
+x <- c(1:length(cld))
+x
+df_ltrs <- data.frame(x, whisker.tops, df_sum$max, cld) %>% 
+  mutate(max = pmax(whisker.tops, df_sum.max)) %>% 
+  select(x, cld, max) %>% 
+  as_tibble() %>% 
+  hablar::convert(chr(cld))
+df_ltrs
+
+# Make the plot.
+# Save the plot to a variable.
+plt <- ggplot(data = df, aes(x=Crop, y=Diversity)) +
+  geom_boxplot() +
+  ggtitle("2018-2019")
+
+# Find value for nudging CLDs upward so they do not overlap whisker or maximum value.
+lmts <- get_plot_limits(plt)
+y.range <- lmts$ymax - lmts$ymin
+y.nudge <- 0.05 * y.range
+
+# Make the plot.
+plt + geom_text(data = df_ltrs, aes(x=x, y=max, label=cld), nudge_y = y.nudge, size = 5)
+```
+
+```{r}
+df_ltrs <- function(df = df, grp = "Crop", value = "Diversity", alpha = 0.05) {
+  rslt <- pairwise.wilcox.test(pull(df, Diversity), pull(df, Crop))
+  ltrs <- make_letter_assignments(rslt, significance = alpha)$Letters
+  max.val <- df %>% 
+    dplyr::group_by_at(grp) %>% 
+    dplyr::summarize_at(.vars = value, .funs = max)
+  df_ltrs <- data.frame(max.val, ltrs)
+  colnames(df_ltrs) <- c("x", "y", "ltrs")
+  return(df_ltrs)
+}
+
+df.ltrs <- df_ltrs(df, grp = "Crop", value = "Diversity", alpha = 0.1)
+df.ltrs
+
+plt + geom_text(data = df.ltrs, aes(x=x, y=y, label=ltrs), nudge_y = y.nudge, size = 5)
+
+```
+
+
+```{r}
+# Select season and index.
+df <- alpha.div %>% 
+  dplyr::filter(Season == "2018-2019") %>% 
+  dplyr::filter(Index == "Pielou")
+df
+
+# Summarize the diversity values.
+df_sum <- df %>% 
+  group_by(Crop) %>%
+  summarize(
+    count = n(),
+    mean = mean(Diversity, na.rm = TRUE),
+    sd = sd(Diversity, na.rm = TRUE),
+    median = median(Diversity, na.rm = TRUE),
+    IQR = IQR(Diversity, na.rm = TRUE),
+    max = max(Diversity, na.rm = TRUE)
+  )
+
+df_sum
+
+plt <- ggplot(data = df, aes(x=Crop, y=Diversity)) +
+  geom_boxplot() +
+  ggtitle("2018-2019")
+plt
+
+df.ltrs <- df_ltrs(df, grp = "Crop", value = "Diversity", alpha = 0.1)
+df.ltrs
+
+plt + geom_text(data = df.ltrs, aes(x=x, y=y, label=ltrs), nudge_y = y.nudge, size = 5)
+
+
+```
+
+```{r}
+# Make a non-parametric test for differences among crops.
+kruskal.test(Diversity ~ Crop, data = df)
+
+# The result is not quite significant, but contune anyway to show the procedure. Make pairwise tests among the crops.
+rslt <- pairwise.wilcox.test(df$Diversity, df$Crop, p.adjust.method = "BH")
+rslt
+
+# Show a matrix of the p.values for the pairwise tests.
+rslt$p.value
+
+# Get compact letter displays (CLDs) for significant differences if alpha = 0.1.
+ltrs<- make_letter_assignments(rslt, significance = 0.1)
+cld <- ltrs$Letters
+cld
+
+# Get coordinates for the tops of whiskers n the box plot.
+box.rslt <- with(df, graphics::boxplot(Diversity ~ Crop, plot = FALSE))
+whisker.tops <- box.rslt$stats[5, ]
+whisker.tops
+
+```
+

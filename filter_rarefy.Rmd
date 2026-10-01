@@ -1,0 +1,89 @@
+---
+title: "Filter and Rarefy"
+author: "John Quensen"
+date: "5/13/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, tidy=TRUE, warning=FALSE, message=FALSE, echo=FALSE}
+suppressPackageStartupMessages(library(phyloseq))
+suppressPackageStartupMessages(library(QsRutils))
+suppressPackageStartupMessages(library(ade4))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(ggordiplots))
+suppressPackageStartupMessages(library(hablar))
+pretty_int <- function(x) {
+  formatC(x, format = "f", big.mark = ",", digits = 0)
+}
+# 
+# setwd("D:/Users/johnq/OneDrive/Kize/phyloseq")
+load("D:/Users/johnq/OneDrive/Kize/phyloseq/expt.rda")
+```
+
+There was an NA in the sample data table for one of the replicates. I fixed it in this version of expt.rda.  
+
+Let's check ASVs that should be removed, based on classification. For example, we will remove those classified as uncl_bacteria or uncl_archaea, and those unclassified to a bacterial phylum. First get the names of the taxa ranks, and a list of the unique taxa in the highest rank.  
+
+```{r}
+rank_names(expt)
+get_taxa_unique(expt, taxonomic.rank = "Domain")
+```
+
+Remove ASVs classified as "uncl_domain" and then get a list of phyla.   
+
+```{r}
+expt.sub <- subset_taxa(expt, Domain != "uncl_domain")
+get_taxa_unique(expt.sub, taxonomic.rank = "Phylum")
+```
+
+Remove the phylum "uncl_Bacteria."
+
+```{r}
+expt.sub <- subset_taxa(expt.sub, Phylum != "uncl_Bacteria")
+```
+
+The phylum "Cyanobacteria/Chloroplast" may contain ASVs classified as chloroplasts. Check if this is so, and remove them if they are present.  
+
+```{r}
+cyan <- subset_taxa(expt.sub, Phylum == "Cyanobacteria/Chloroplast")
+get_taxa_unique(cyan, taxonomic.rank = "Class")
+```
+
+So chloroplasts sequences are present. We need to remove them.  
+
+```{r}
+expt.sub <- subset_taxa(expt.sub, Class != "Chloroplast")
+```
+
+Re-check that we got rid of all taxa that we wanted to.  
+
+```{r}
+get_taxa_unique(expt.sub, taxonomic.rank = "Domain")
+get_taxa_unique(expt.sub, taxonomic.rank = "Phylum")
+cyan <- subset_taxa(expt.sub, Phylum == "Cyanobacteria/Chloroplast")
+get_taxa_unique(cyan, taxonomic.rank = "Class")
+```
+
+Now check the number of ASVs per sample.  
+
+```{r}
+expt.sub <- prune_taxa(taxa_sums(expt.sub)>0, expt.sub)
+summary(sample_sums(expt.sub))
+```
+
+Let's "rarefy" our data, i.e. sample to the same number of counts per sample. The minimum is presently `r pretty_int(min(sample_sums(expt.sub)))`. 
+
+```{r}
+expt.sub <- rarefy_even_depth(expt.sub, rngseed = 913, replace = FALSE)
+expt.sub
+save(expt.sub, file = "D:/Users/johnq/OneDrive/Kize/phyloseq/expt_sub.rda")
+```
+
+We will use expt.sub for further analyses. It has been filtered of unwanted ASVs and sampled to the same number of counts per sample. I set rngseed to 913 (easily remembered because it is my birthday!) so that the rarefying can be duplicated. Otherwise you would get different results every time you rarefy.  

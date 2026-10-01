@@ -1,0 +1,126 @@
+---
+title: "Auto Box Plots"
+author: "John Quensen"
+date: "5/20/2020"
+output:
+  pdf_document: default
+  html_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+An exercise in writing functions to automate plotting.  
+
+Load libraries and import data.  
+
+
+```{r, tidy=TRUE, warning=FALSE, message=FALSE, echo=FALSE}
+suppressPackageStartupMessages(library(phyloseq))
+suppressPackageStartupMessages(library(QsRutils))
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(ggordiplots))
+suppressPackageStartupMessages(library(hablar))
+
+load("D:/Users/johnq/OneDrive/Kize/phyloseq/expt_sub.rda")
+```
+
+First, we have to subset our data to the treatment combinations we want to compare. We begin by sub-setting to harvest time and bulk soil.  
+
+```{r}
+bulk.har <- subset_samples(expt.sub, Sampling_time == "Harvest")
+bulk.har <- subset_samples(bulk.har, Soil == "Bulk")
+bulk.har <- prune_taxa(taxa_sums(bulk.har)>0, bulk.har)
+bulk.har
+```
+
+Make a data tibble for plotting $\alpha$-diversities for the different cropping methods.   
+
+```{r}
+yr <- vegansam(bulk.har) %>% 
+  rownames_to_column("Sample") %>% 
+  select(Sample, Season, Crop) %>% 
+  as_tibble()
+
+temp <-   estimate_richness(bulk.har, measures = c("Observed", "Chao1", "Shannon")) %>% 
+  rownames_to_column("Sample") %>% 
+  select(-se.chao1) %>% 
+  mutate(Pielou = Shannon/log(Observed)) %>% 
+  as_tibble()
+
+alpha.div <- 
+  full_join(yr, temp, by = "Sample") %>% 
+  select(-Sample) %>% 
+  pivot_longer(c(Observed, Chao1, Shannon, Pielou), names_to = "Index") %>% 
+  dplyr::rename(Diversity = value)
+  
+alpha.div
+```
+
+Subset to one season.  
+
+```{r}
+alpha.sub <- alpha.div %>% 
+  hablar::convert(chr(Season)) %>% 
+  dplyr::filter(Season == "2018-2019") %>% 
+  droplevels("Season")
+alpha.sub
+unique(alpha.sub$Season)
+```
+
+Write a function to make a tibble giving coordinates of the compact letter displays for a box plot. Determine the compact letter displays using pairwise Wilcox tests.  
+
+```{r}
+df_ltrs <- function(df = df, grp = "Crop", value = "Diversity", alpha = 0.05) {
+  rslt <- pairwise.wilcox.test(pull(df, Diversity), pull(df, Crop))
+  ltrs <- make_letter_assignments(rslt, significance = alpha)$Letters
+  max.val <- df %>% 
+    dplyr::group_by_at(grp) %>% 
+    dplyr::summarize_at(.vars = value, .funs = max)
+  df.ltrs <- data.frame(max.val, ltrs)
+  colnames(df.ltrs) <- c("x", "y", "ltrs")
+  return(df.ltrs)
+}
+```
+
+Write a function to make box plots with compact letter displays indicating significant differences among treatments.  
+
+```{r}
+boxplot_cld <- function(df, x, y, alpha) {
+  plt <- ggplot(data = df, aes(x=Crop, y=Diversity)) + geom_boxplot()
+  df.ltrs <- df_ltrs(df = df, grp = x, value = y, alpha = alpha)
+  lmts <- get_plot_limits(plt)
+  y.range <- lmts$ymax - lmts$ymin
+  y.nudge <- 0.05 * y.range
+  plt + geom_text(data = df.ltrs, aes(x=x, y=y, label=ltrs), nudge_y = y.nudge, size = 5)
+}
+```
+
+Use the functions within a loop to make separate plots for each diversity index.  
+
+```{r}
+indices <- unique(alpha.sub$Index)
+indices
+
+for (index in indices) {
+  df <- dplyr::filter(alpha.sub, Index == index)
+  plt <- boxplot_cld(df=df, x="Crop", y="Diversity", alpha = 0.1)
+  print(plt + ylab(index) + ggtitle("2018-2019"))
+}
+```
+
+Here is another way to execute the plotting from within a loop. I do not execute it in this document, but try it yourself and see.  
+
+```{r, eval=FALSE}
+while (length(indices < 0)) {
+  df <- dplyr::filter(alpha.sub, Index == index)
+  plt <- boxplot_cld(df=df, x="Crop", y="Diversity", alpha = 0.1)
+  print(plt + ylab(index) + ggtitle("2018-2019"))
+  indices <- indices[-1]
+}
+```
+
+You can also subset alpha.div to alpha.sub for other seasons and re-do the above, try different values of alpha, etc.  
